@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8b5cf6;
+  --color-primary-dark: #7c3aed;
+  --color-primary-light: #a78bfa;
+
+  --color-secondary: #0ea5e9;
+  --color-secondary-dark: #0284c7;
+  --color-secondary-light: #38bdf8;
+
+  --color-background: #0b0f1a;
+  --color-surface: #161b2e;
+  --color-surface-hover: #1f2937;
+  --color-border: rgba(255, 255, 255, 0.1);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-cyan: 0 0 15px rgba(14, 165, 233, 0.4);
+  --shadow-violet: 0 0 15px rgba(139, 92, 246, 0.4);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-slate-100 font-sans antialiased selection:bg-primary/30;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 35%),
+      radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.15) 0%, transparent 35%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl;
+  }
+
+  .nav-blur {
+    @apply bg-background/60 backdrop-blur-md border-b border-white/5;
+  }
+
+  .input-field {
+    @apply w-full bg-background/50 border border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all placeholder:text-slate-500 text-slate-100;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-primary-dark text-white font-bold rounded-2xl px-8 py-4 shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-to-r from-secondary to-secondary-dark text-white font-bold rounded-2xl px-8 py-4 shadow-lg shadow-secondary/20 hover:shadow-secondary/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2;
+  }
+
+  .btn-outline {
+    @apply bg-transparent border border-white/10 hover:bg-white/5 font-semibold rounded-2xl px-6 py-3 transition-all flex items-center justify-center gap-2;
+  }
+
+  .table-container {
+    @apply bg-surface/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden;
+  }
+
+  .table-row {
+    @apply border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors;
+  }
+
+  .table-header {
+    @apply bg-white/[0.03] text-slate-400 font-display uppercase text-xs tracking-widest p-4;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
