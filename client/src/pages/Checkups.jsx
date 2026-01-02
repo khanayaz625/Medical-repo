@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../api/axios';
-import { Printer, Activity, FileText, Stethoscope, PlusCircle, Share2, ClipboardList, Check, X, ArrowRight, ShieldCheck, Heart, User } from 'lucide-react';
+import { Printer, Activity, FileText, Stethoscope, PlusCircle, Share2, ClipboardList, Check, X, ArrowRight, ShieldCheck, Heart, User, Download } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const CHECKUP_TYPES = [
     { id: 'cbc', name: 'Hematology Panel (CBC)', price: 15, sub: 'Complete Blood Count Analysis' },
@@ -22,6 +24,7 @@ const Checkups = () => {
         selectedCheckups: []
     });
     const [viewReport, setViewReport] = useState(null);
+    const reportRef = useRef(null);
     const fetchCheckups = React.useCallback(async () => {
         try {
             const res = await API.get('/api/checkups');
@@ -94,12 +97,43 @@ const Checkups = () => {
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
+    const downloadPDF = async () => {
+        console.log('Initiating PDF download...');
+        const element = reportRef.current;
+        if (!element) {
+            console.error('Report element not found');
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                backgroundColor: '#ffffff'
+            });
+
+            console.log('Canvas generated, creating PDF...');
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Diagnostic_Report_${viewReport.patientName.replace(/\s+/g, '_')}.pdf`);
+            console.log('PDF save triggered');
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+        }
+    };
+
     if (viewReport) {
         return (
-            <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-background/95 backdrop-blur-md no-print" onClick={() => setViewReport(null)}></div>
-                <div className="glass-card w-full max-w-4xl relative overflow-hidden animate-float">
-                    <div className="p-8 bg-white text-slate-900 border-b-4 border-primary shadow-2xl relative">
+            <div className="fixed inset-0 z-200 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+                <div className="fixed inset-0 bg-background/95 backdrop-blur-md no-print" onClick={() => setViewReport(null)}></div>
+                <div className="glass-card w-full max-w-4xl relative overflow-hidden animate-float my-auto">
+                    <div ref={reportRef} className="p-8 bg-white text-slate-900 border-b-4 border-primary shadow-2xl relative">
                         {/* Report Header */}
                         <div className="flex justify-between items-center mb-10 pb-6 border-b border-slate-200">
                             <div className="flex items-center gap-5">
@@ -188,13 +222,16 @@ const Checkups = () => {
 
                         {/* Action Buttons (Floating) */}
                         <div className="no-print absolute top-4 right-4 flex gap-2">
-                            <button onClick={() => shareOnWhatsApp(viewReport)} className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all">
+                            <button onClick={() => shareOnWhatsApp(viewReport)} className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all" title="Share on WhatsApp">
                                 <Share2 size={18} />
                             </button>
-                            <button onClick={() => window.print()} className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                            <button onClick={downloadPDF} className="w-10 h-10 bg-violet-100 text-violet-600 rounded-xl flex items-center justify-center hover:bg-violet-600 hover:text-white transition-all" title="Download PDF">
+                                <Download size={18} />
+                            </button>
+                            <button onClick={() => window.print()} className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all" title="Print Invoice">
                                 <Printer size={18} />
                             </button>
-                            <button onClick={() => setViewReport(null)} className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all">
+                            <button onClick={() => setViewReport(null)} className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all" title="Close">
                                 <X size={18} />
                             </button>
                         </div>
@@ -206,7 +243,7 @@ const Checkups = () => {
 
     return (
         <div className="pt-32 pb-20 px-4">
-            <div className="container mx-auto max-w-7xl">
+            <div className="container mx-auto max-w-7xl no-print">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
                     {/* Diagnostic Terminal */}

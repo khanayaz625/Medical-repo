@@ -28,7 +28,7 @@ const Navbar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-4 pointer-events-none">
+        <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-4 pointer-events-none no-print">
             <div className="container mx-auto max-w-7xl pointer-events-auto">
                 <div className="glass-card !rounded-2xl !p-2 flex items-center justify-between px-6 py-3 border-white/5 bg-background/40 backdrop-blur-2xl">
                     <Link to="/" className="flex items-center gap-3 group">
@@ -48,8 +48,8 @@ const Navbar = () => {
                                 key={item.path}
                                 to={item.path}
                                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${isActive(item.path)
-                                        ? 'bg-primary text-white shadow-violet shadow-lg scale-105'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-primary text-white shadow-violet shadow-lg scale-105'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 <item.icon size={16} />
@@ -92,8 +92,8 @@ const Navbar = () => {
                                     to={item.path}
                                     onClick={() => setIsOpen(false)}
                                     className={`flex items-center justify-between p-4 rounded-xl transition-all ${isActive(item.path)
-                                            ? 'bg-primary/20 text-primary border border-primary/20'
-                                            : 'text-slate-400 hover:bg-white/5'
+                                        ? 'bg-primary/20 text-primary border border-primary/20'
+                                        : 'text-slate-400 hover:bg-white/5'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">

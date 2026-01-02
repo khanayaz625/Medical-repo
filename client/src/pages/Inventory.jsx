@@ -1,7 +1,146 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API from '../api/axios';
-import { Upload, Printer, Search, Plus, Minus, Trash2, X, Share2, ShoppingCart, Package } from 'lucide-react';
+import { Upload, Printer, Search, Plus, Minus, Trash2, X, Share2, ShoppingCart, Package, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
+const ReceiptModal = ({ showReceipt, setShowReceipt, customerName, cart, CURRENCY, calculateTotal, shareOnWhatsApp, user }) => {
+    const refNumber = React.useMemo(() => Date.now().toString().slice(-8), []);
+    const receiptRef = useRef(null);
+
+    const downloadPDF = async () => {
+        console.log('Initiating Inventory PDF download...');
+        const element = receiptRef.current;
+        if (!element) {
+            console.error('Receipt element not found');
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                backgroundColor: '#ffffff'
+            });
+
+            console.log('Canvas generated for inventory, creating PDF...');
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Invoice_${customerName.replace(/\s+/g, '_') || 'Customer'}_${refNumber}.pdf`);
+            console.log('PDF save triggered');
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+        }
+    };
+
+    if (!showReceipt) return null;
+
+    return (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+            <div className="fixed inset-0 bg-background/95 backdrop-blur-md no-print" onClick={() => setShowReceipt(false)}></div>
+            <div className="glass-card max-w-2xl w-full mx-4 overflow-hidden animate-float my-auto">
+                <div className="p-6 bg-white/3 flex justify-between items-center border-b border-white/5 no-print">
+                    <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+                        <Printer size={20} className="text-primary" /> Invoice Intelligence
+                    </h2>
+                    <div className="flex gap-2">
+                        <button className="p-2.5 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all" onClick={shareOnWhatsApp} title="Share on WhatsApp">
+                            <Share2 size={18} />
+                        </button>
+                        <button className="p-2.5 rounded-xl bg-violet-500/10 text-violet-400 hover:bg-violet-500 hover:text-white transition-all" onClick={downloadPDF} title="Download PDF">
+                            <Download size={18} />
+                        </button>
+                        <button className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all" onClick={() => window.print()} title="Print Invoice">
+                            <Printer size={18} />
+                        </button>
+                        <button className="p-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all" onClick={() => setShowReceipt(false)} title="Close">
+                            <X size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                <div ref={receiptRef} className="p-10 bg-white text-slate-900 min-h-[600px] relative">
+                    <div className="flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-8">
+                        <div>
+                            <h1 className="text-4xl font-black tracking-tighter uppercase mb-1">MediStore <span className="text-blue-600">Pro</span></h1>
+                            <p className="text-slate-500 text-sm font-bold tracking-widest uppercase">Precision Health Logistics</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-4xl font-light text-slate-300 uppercase tracking-[0.2em]">Invoice</p>
+                            <p className="font-mono text-xs mt-2 font-black text-blue-600 tracking-tighter">REF: {refNumber}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-12 mb-12">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Client Profile</p>
+                            <p className="text-2xl font-bold tracking-tight">{customerName || 'Anonymous Client'}</p>
+                            <p className="text-sm text-slate-500 mt-1">Status: Verified Payment</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Transaction Metadata</p>
+                            <div className="space-y-1 text-sm font-bold">
+                                <p><span className="text-slate-400">Chronology:</span> {new Date().toLocaleDateString()}</p>
+                                <p><span className="text-slate-400">Terminal ID:</span> <span className="text-blue-600">{user?.username}</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table className="w-full mb-12">
+                        <thead>
+                            <tr className="border-y-2 border-slate-900">
+                                <th className="py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">Inventory Item</th>
+                                <th className="py-4 text-center text-xs font-black uppercase tracking-widest text-slate-500">Unit</th>
+                                <th className="py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500">Rate</th>
+                                <th className="py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500">Extended</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {cart.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td className="py-5 font-bold text-slate-800">{item.name}</td>
+                                    <td className="py-5 text-center font-mono text-sm">{item.cartQty}</td>
+                                    <td className="py-5 text-right font-mono text-sm">{CURRENCY}{item.price.toFixed(2)}</td>
+                                    <td className="py-5 text-right font-mono font-black text-slate-900">{CURRENCY}{(item.price * item.cartQty).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <div className="flex justify-end p-8 bg-slate-50 rounded-3xl mb-12 border border-slate-100">
+                        <div className="w-64 space-y-3">
+                            <div className="flex justify-between text-sm font-bold text-slate-500">
+                                <span>Sub-Total</span>
+                                <span>{CURRENCY}{calculateTotal().toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm font-bold text-slate-500">
+                                <span>Adjustments</span>
+                                <span>{CURRENCY}0.00</span>
+                            </div>
+                            <div className="flex justify-between text-2xl font-black text-slate-900 pt-3 border-t-2 border-slate-200">
+                                <span>TOTAL</span>
+                                <span className="text-blue-600">{CURRENCY}{calculateTotal().toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <div className="inline-block px-4 py-1 bg-slate-100 rounded-full text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">
+                            Health through Precision
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const Inventory = () => {
     const [medicines, setMedicines] = useState([]);
@@ -81,116 +220,26 @@ const Inventory = () => {
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
-    const ReceiptModal = () => {
-        const refNumber = React.useMemo(() => Date.now().toString().slice(-8), []);
-        return (
-            <div className="modal-overlay">
-                <div className="glass-card max-w-2xl w-full mx-4 overflow-hidden animate-float">
-                    <div className="p-6 bg-white/3 flex justify-between items-center border-b border-white/5 no-print">
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            <Printer size={20} className="text-primary" /> Invoice Intelligence
-                        </h2>
-                        <div className="flex gap-2">
-                            <button className="p-2.5 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all" onClick={shareOnWhatsApp}>
-                                <Share2 size={18} />
-                            </button>
-                            <button className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all" onClick={() => window.print()}>
-                                <Printer size={18} />
-                            </button>
-                            <button className="p-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all" onClick={() => setShowReceipt(false)}>
-                                <X size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="p-10 bg-white text-slate-900 min-h-[600px] relative">
-                        <div className="flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-8">
-                            <div>
-                                <h1 className="text-4xl font-black tracking-tighter uppercase mb-1">MediStore <span className="text-blue-600">Pro</span></h1>
-                                <p className="text-slate-500 text-sm font-bold tracking-widest uppercase">Precision Health Logistics</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-4xl font-light text-slate-300 uppercase tracking-[0.2em]">Invoice</p>
-                                <p className="font-mono text-xs mt-2 font-black text-blue-600 tracking-tighter">REF: {refNumber}</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-12 mb-12">
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Client Profile</p>
-                                <p className="text-2xl font-bold tracking-tight">{customerName || 'Anonymous Client'}</p>
-                                <p className="text-sm text-slate-500 mt-1">Status: Verified Payment</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Transaction Metadata</p>
-                                <div className="space-y-1 text-sm font-bold">
-                                    <p><span className="text-slate-400">Chronology:</span> {new Date().toLocaleDateString()}</p>
-                                    <p><span className="text-slate-400">Terminal ID:</span> <span className="text-blue-600">{user?.username}</span></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <table className="w-full mb-12">
-                            <thead>
-                                <tr className="border-y-2 border-slate-900">
-                                    <th className="py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500">Inventory Item</th>
-                                    <th className="py-4 text-center text-xs font-black uppercase tracking-widest text-slate-500">Unit</th>
-                                    <th className="py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500">Rate</th>
-                                    <th className="py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500">Extended</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {cart.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td className="py-5 font-bold text-slate-800">{item.name}</td>
-                                        <td className="py-5 text-center font-mono text-sm">{item.cartQty}</td>
-                                        <td className="py-5 text-right font-mono text-sm">{CURRENCY}{item.price.toFixed(2)}</td>
-                                        <td className="py-5 text-right font-mono font-black text-slate-900">{CURRENCY}{(item.price * item.cartQty).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        <div className="flex justify-end p-8 bg-slate-50 rounded-3xl mb-12 border border-slate-100">
-                            <div className="w-64 space-y-3">
-                                <div className="flex justify-between text-sm font-bold text-slate-500">
-                                    <span>Sub-Total</span>
-                                    <span>{CURRENCY}{calculateTotal().toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm font-bold text-slate-500">
-                                    <span>Adjustments</span>
-                                    <span>{CURRENCY}0.00</span>
-                                </div>
-                                <div className="flex justify-between text-2xl font-black text-slate-900 pt-3 border-t-2 border-slate-200">
-                                    <span>TOTAL</span>
-                                    <span className="text-blue-600">{CURRENCY}{calculateTotal().toFixed(2)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-center">
-                            <div className="inline-block px-4 py-1 bg-slate-100 rounded-full text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">
-                                Health through Precision
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     const filteredMedicines = medicines.filter(m =>
         m.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
         <div className="pt-32 pb-20 px-4">
-            {showReceipt && <ReceiptModal />}
+            <ReceiptModal
+                showReceipt={showReceipt}
+                setShowReceipt={setShowReceipt}
+                customerName={customerName}
+                cart={cart}
+                CURRENCY={CURRENCY}
+                calculateTotal={calculateTotal}
+                shareOnWhatsApp={shareOnWhatsApp}
+                user={user}
+            />
 
-            <div className="container mx-auto max-w-7xl">
+            <div className="container mx-auto max-w-7xl no-print">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-                    {/* Main Inventory Section */}
                     <div className="flex-1 w-full space-y-8">
                         <div className="glass-card p-8! flex flex-col md:flex-row gap-6 justify-between items-center">
                             <div>
@@ -305,7 +354,6 @@ const Inventory = () => {
                         </div>
                     </div>
 
-                    {/* Terminal / Bill Section */}
                     <div className="w-full lg:w-[400px] lg:sticky lg:top-36 space-y-6">
                         <div className="glass-card p-8! border-primary/20 shadow-violet relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-3">
