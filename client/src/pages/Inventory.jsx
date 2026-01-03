@@ -48,7 +48,7 @@ const ReceiptModal = ({ showReceipt, setShowReceipt, customerName, cart, CURRENC
             <div className="glass-card max-w-2xl w-full mx-4 overflow-hidden animate-float my-auto">
                 <div className="p-6 bg-white/3 flex justify-between items-center border-b border-white/5 no-print">
                     <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                        <Printer size={20} className="text-primary" /> Invoice Intelligence
+                        <Printer size={20} className="text-primary" /> Invoice 
                     </h2>
                     <div className="flex gap-2">
                         <button className="p-2.5 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all" onClick={shareOnWhatsApp} title="Share on WhatsApp">
