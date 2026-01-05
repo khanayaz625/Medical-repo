@@ -18,25 +18,34 @@ const ReceiptModal = ({ showReceipt, setShowReceipt, customerName, cart, CURRENC
         }
 
         try {
+            // Simple delay to ensure any animations are finished
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             const canvas = await html2canvas(element, {
-                scale: 2,
+                scale: 3, // Higher scale for better quality
                 useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff'
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
             });
 
             console.log('Canvas generated for inventory, creating PDF...');
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Invoice_${customerName.replace(/\s+/g, '_') || 'Customer'}_${refNumber}.pdf`);
-            console.log('PDF save triggered');
+            // If content is longer than one page, it will be scaled down to fit on one A4 page
+            // For a more professional look, we can handle multi-page, but for now let's ensure it fits
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+
+            const fileName = `Invoice_${(customerName || 'Customer').trim().replace(/[^a-z0-9]/gi, '_')}_${refNumber}.pdf`;
+            pdf.save(fileName);
+            console.log('PDF save success:', fileName);
         } catch (error) {
             console.error('PDF generation failed:', error);
+            alert('PDF generation failed. Please try "Print" and "Save as PDF" instead.');
         }
     };
 
@@ -48,7 +57,7 @@ const ReceiptModal = ({ showReceipt, setShowReceipt, customerName, cart, CURRENC
             <div className="glass-card max-w-2xl w-full mx-4 overflow-hidden animate-float my-auto">
                 <div className="p-6 bg-white/3 flex justify-between items-center border-b border-white/5 no-print">
                     <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                        <Printer size={20} className="text-primary" /> Invoice 
+                        <Printer size={20} className="text-primary" /> Invoice
                     </h2>
                     <div className="flex gap-2">
                         <button className="p-2.5 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all" onClick={shareOnWhatsApp} title="Share on WhatsApp">

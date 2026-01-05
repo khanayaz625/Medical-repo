@@ -98,7 +98,7 @@ const Checkups = () => {
     };
 
     const downloadPDF = async () => {
-        console.log('Initiating PDF download...');
+        console.log('Initiating Diagnostic Report PDF download...');
         const element = reportRef.current;
         if (!element) {
             console.error('Report element not found');
@@ -106,25 +106,31 @@ const Checkups = () => {
         }
 
         try {
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             const canvas = await html2canvas(element, {
-                scale: 2,
+                scale: 3,
                 useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff'
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
             });
 
             console.log('Canvas generated, creating PDF...');
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Diagnostic_Report_${viewReport.patientName.replace(/\s+/g, '_')}.pdf`);
-            console.log('PDF save triggered');
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+
+            const fileName = `Diagnostic_Report_${(viewReport.patientName || 'Patient').trim().replace(/[^a-z0-9]/gi, '_')}.pdf`;
+            pdf.save(fileName);
+            console.log('PDF save success:', fileName);
         } catch (error) {
             console.error('PDF generation failed:', error);
+            alert('PDF generation failed. Please try "Print" and "Save as PDF" instead.');
         }
     };
 
